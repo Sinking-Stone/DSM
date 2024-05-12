@@ -20,9 +20,9 @@ void tracker_c::stop(void){
 void* tracker_c::run(void){
     acl::socket_stream conn;
     while(!m_stop){
-        // 连接跟踪服务器
+        // 连接跟踪服务器, 10秒超时, 30秒重试
         if(!conn.open(m_taddr,10,30)){
-            logger_error("connect tracker fail, taddr: %s",m_taddr.c_str());
+            logger_error("connect tracker fail, taddr: %s.",m_taddr.c_str());
             // 失败重连
             sleep(2);
             continue;
@@ -44,8 +44,7 @@ void* tracker_c::run(void){
             if(now-last>=cfg_interval){
                 // 向跟踪服务器发送心跳包
                 if(beat(&conn)!=OK)
-                    // 失败重连
-                    break;
+                    break;  // 失败重连
                 last=now;
             }
             sleep(1);
@@ -58,7 +57,7 @@ void* tracker_c::run(void){
 // 向跟踪服务器发送加入包
 int tracker_c::join(acl::socket_stream* conn) const{
     // |包体长度|命令|状态|storage_join_body_t|
-    // |   8  |  1 | 1 |      包体长度       |
+    // |   8   |  1 | 1 |      包体长度      |
     // 构造请求
     long long bodylen=sizeof(storage_join_body_t);
     long long requlen=HEADLEN+bodylen;
@@ -75,17 +74,17 @@ int tracker_c::join(acl::socket_stream* conn) const{
     lton(time(nullptr),sjb->sjb_jtime);             // 加入时间
     // 发送请求
     if(conn->write(requ,requlen)<0){
-        logger_error("write fail: %s, requlen: %lld, to: %s",acl::last_serror(),requlen,conn->get_peer());
+        logger_error("write fail: %s, requlen: %lld, to: %s.",acl::last_serror(),requlen,conn->get_peer());
         return SOCKET_ERROR;
     }
     // 接收包头
     char head[HEADLEN];
     if(conn->read(head,HEADLEN)<0){
-        logger_error("read fail: %s, from: %s",acl::last_serror(),conn->get_peer());
+        logger_error("read fail: %s, from: %s.",acl::last_serror(),conn->get_peer());
         return SOCKET_ERROR;
     }
     // |包头长度|命令|状态|
-    // |   8  |  1 | 1 |
+    // |   8   |  1 | 1 |
     // 解析包头
     // 包体长度
     if((bodylen=ntoll(head))<0){
@@ -105,17 +104,17 @@ int tracker_c::join(acl::socket_stream* conn) const{
     // 应答成功
     if(!status) return OK;
     // |包体长度|命令|状态|错误号|错误描述|
-    // |   8   | 1 | 1 |  2  |  1024 |
+    // |   8   |  1 | 1  |  2  | <=1024|
     // 检查包体长度
     long long expected=ERROR_NUMB_SIZE+ERROR_DESC_SIZE;
     if(bodylen>expected){
-        logger_error("invalid body length: %lld > %lld",bodylen,expected);
+        logger_error("invalid body length: %lld > %lld.",bodylen,expected);
         return ERROR;
     }
     // 接收包体
     char body[bodylen];
     if(conn->read(body,bodylen)<0){
-        logger_error("read fail: %s, bodylen: %lld, from: %s",acl::last_serror(),bodylen,conn->get_peer());
+        logger_error("read fail: %s, bodylen: %lld, from: %s,",acl::last_serror(),bodylen,conn->get_peer());
         return SOCKET_ERROR;
     }
     // 解析包体

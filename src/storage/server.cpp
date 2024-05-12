@@ -59,7 +59,7 @@ void server_c::proc_on_init(void){
     // 创建并启动连接每台跟踪服务器的客户机线程
     for(auto taddr=g_taddrs.begin();taddr!=g_taddrs.end();++taddr){
         tracker_c* tracker=new tracker_c(taddr->c_str());
-        tracker->set_detachable(false);
+        tracker->set_detachable(false); // 将tracker线程设置为非分离状态，以便等待线程结束（可汇合线程）
         tracker->start();
         m_trackers.push_back(tracker);
     }
@@ -106,7 +106,7 @@ bool server_c::thread_on_accept(acl::socket_stream* conn){
 bool server_c::thread_on_read(acl::socket_stream* conn){
     // 接收包头
     char head[HEADLEN];
-    if(conn->read(head,HEADLEN)<0){
+    if(conn->read(head,HEADLEN)<0){ //  conn->eof()表示连接已关闭
         if(conn->eof()) logger("connection has been closed, from: %s.",conn->get_peer());
         else logger_error("read fail: %s, from: %s.",acl::last_serror(),conn->get_peer());
         return false;

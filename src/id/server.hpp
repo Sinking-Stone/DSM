@@ -15,7 +15,6 @@ protected:
     // 返回true，进程立即退出，否则，若配置ioctl_quick_abort非0，进程立即退出，否则待所有客户机连接都关闭后，进程再退出
     bool proc_exit_timer(size_t nclients,size_t nthreads);
 
-
     // 线程获得连接时被调用
     bool thread_on_accept(acl::socket_stream* conn);
     // 与线程绑定的连接可读时被调用

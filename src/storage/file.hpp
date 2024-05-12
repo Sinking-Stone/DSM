@@ -24,15 +24,15 @@ public:
     // 写入文件
     int write(void const* buf,size_t count) const;
 
-    // 设置偏移
+    // 设置偏移（为了实现随机播放）
     int seek(off_t offset) const;
     // 删除文件
     static int del(char const* path);
 
     // 打开标志
-    static char const O_READ='r';
-    static char const O_WRITE='w';
+    static char const O_READ='r';   // 读
+    static char const O_WRITE='w';  // 写
 private:
-    // 文件描述符
+    // 文件描述符（可以理解为句柄）
     int m_fd;
 };

@@ -2,7 +2,7 @@ DROP DATABASE IF EXISTS tnv_trackerdb;
 CREATE DATABASE tnv_trackerdb;
 USE tnv_trackerdb;
 
-CREATE TABLE `t_group_info`(
+CREATE TABLE `t_groups_info`(
     `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
     `group_name` varchar(32) DEFAULT NULL,
     `create_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
@@ -10,7 +10,7 @@ CREATE TABLE `t_group_info`(
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `t_group_info` (`group_name`) VALUE ('group001');
+INSERT INTO `t_groups_info` (`group_name`) VALUE ('group001');
 
 CREATE TABLE `t_router`(
     `id` int(11) unsigned NOT NULL AUTO_INCREMENT,

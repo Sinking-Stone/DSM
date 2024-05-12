@@ -1,6 +1,7 @@
 /**
  * (06_db)存储服务器数据库类
  * wfl:2024-4-3
+ * change:2024-5-8
 */
 // 存储服务器
 // 实现数据库访问类
@@ -22,17 +23,18 @@ db_c::~db_c(){
 int db_c::connect(void){
     MYSQL* mysql=m_mysql;
     for(std::vector<std::string>::const_iterator maddr=g_maddrs.begin();maddr!=g_maddrs.end();++maddr){
-        if(mysql_real_connect(mysql,maddr->c_str(),"root","123456","tnv_storagedb",0,nullptr,0)) return OK;
+        if((mysql_real_connect(mysql,maddr->c_str(),"root","123456","tnv_storagedb",0,nullptr,0))) return OK;
     }
-    logger_error("connect database fail: %s",mysql_error(m_mysql=mysql));
+    logger_error("connect database fail: %s.",mysql_error(m_mysql=mysql));
     return ERROR;
 }
 // 根据文件ID获取其路径及大小
 int db_c::get(char const* appid,char const* userid,char const* fileid,std::string &filepath,long long *filesize) const{
     // 先尝试从缓存中获取与文件ID对应的路径及大小
+    // 案例：key： uid:fid:<userid>:<fileid>， value： <filesize>;<filepath>
     cache_c cache;
     acl::string key;
-    key.format("uid:fid: %s:%s",userid,fileid);
+    key.format("uid:fid:%s:%s",userid,fileid);
     acl::string value;
     if(cache.get(key,value)==OK){
         std::vector<acl::string> size_path=value.split2(";");
@@ -40,39 +42,38 @@ int db_c::get(char const* appid,char const* userid,char const* fileid,std::strin
             filepath=size_path[1].c_str();
             *filesize=atoll(size_path[0].c_str());
             if(!filepath.empty()&&*filesize>0){
-                logger("from cache,appid: %s,userid: %s, failid: %s, filepath: %s, filesize: %lld.",appid,userid,fileid,filepath.c_str(),*filesize);
+                logger("from cache,appid: %s,userid: %s, fileid: %s, filepath: %s, filesize: %lld.",appid,userid,fileid,filepath.c_str(),*filesize);
                 return OK;
             }
         }
-        return OK;
     }
     // 缓存中没有再查询数据库
     std::string tablename=table_of_user(userid);
     if(tablename.empty()){
-        logger_error("tablename is empty, appid: %s, userid: %s, fileid:: %s",appid,userid,fileid);
+        logger_error("tablename is empty, appid: %s, userid: %s, fileid:: %s.",appid,userid,fileid);
         return ERROR;
     }
     acl::string sql;
     sql.format("SELECT file_path, file_size FROM %s WHERE id='%s';",tablename.c_str(),fileid);
     if(mysql_query(m_mysql,sql.c_str())){
-        logger_error("query database fail: %s, sql: %s",mysql_error(m_mysql),sql.c_str());
+        logger_error("query database fail: %s, sql: %s.",mysql_error(m_mysql),sql.c_str());
         return ERROR;
     }
     // 获取查询结果
     MYSQL_RES* res=mysql_store_result(m_mysql);
     if(!res){
-        logger_error("result is null: %s, sql: %s",mysql_error(m_mysql),sql.c_str());
+        logger_error("result is null: %s, sql: %s.",mysql_error(m_mysql),sql.c_str());
         return ERROR;
     }
     // 获取结果记录
     MYSQL_ROW row=mysql_fetch_row(res);
     if(!row){
-        logger_error("result is empty: %s, sql: %s",mysql_error(m_mysql),sql.c_str());
+        logger_error("result is empty: %s, sql: %s.",mysql_error(m_mysql),sql.c_str());
         return ERROR;
     }
     filepath=row[0];
     *filesize=atoll(row[1]);
-    logger("from database, appid: %s, userid: %s, fileid=%s, filepath: %s, filesize: %lld",appid,userid,fileid,filepath.c_str(),*filesize);
+    logger("from database, appid: %s, userid: %s, fileid=%s, filepath: %s, filesize: %lld.",appid,userid,fileid,filepath.c_str(),*filesize);
     // 将文件ID和路径大小的对应关系保存在缓存中
     value.format("%lld;%s",*filesize,filepath.c_str());
     cache.set(key,value.c_str());
@@ -90,7 +91,7 @@ int db_c::set(char const* appid,char const*userid,char const* fileid,char const 
     acl::string sql;
     sql.format("INSERT INTO %s SET id='%s', appid='%s',userid='%s', status=0, file_path='%s', file_size=%lld;",tablename.c_str(),fileid,appid,userid,filepath,filesize);
     if(mysql_query(m_mysql,sql.c_str())){
-        logger_error("insert database fail: %s, sql: %s",mysql_error(m_mysql),sql.c_str());
+        logger_error("insert database fail: %s, sql: %s.",mysql_error(m_mysql),sql.c_str());
         return ERROR;
     }
     // 查询插入结果
@@ -107,31 +108,31 @@ int db_c::del(char const* appid,char const* userid,char const* fileid) const{
     cache_c cache;
     acl::string key;
     key.format("uid:fid:%s:%s",userid,fileid);
-    if(cache.del(key)!=OK) logger_warn("delete cache fail, appid: %s, userid: %s, fileid: %s",appid,userid,fileid);
+    if(cache.del(key)!=OK) logger_warn("delete cache fail, appid: %s, userid: %s, fileid: %s.",appid,userid,fileid);
     // 再从数据库中删除文件ID
     std::string tablename=table_of_user(userid);
     if(tablename.empty()){
-        logger_error("tablename is empty, appid: %s, userid: %s, fileid:: %s",appid,userid,fileid);
+        logger_error("tablename is empty, appid: %s, userid: %s, fileid:: %s.",appid,userid,fileid);
         return ERROR;
     }
     acl::string sql;
     sql.format("DELETE FROM %s WHERE id='%s';",tablename.c_str(),fileid);
     if(mysql_query(m_mysql,sql.c_str())){
-        logger_error("delete database fail: %s, sql: %s",mysql_error(m_mysql),sql.c_str());
+        logger_error("delete database fail: %s, sql: %s.",mysql_error(m_mysql),sql.c_str());
         return ERROR;
     }
     // 检查删除结果
     MYSQL_RES* res=mysql_store_result(m_mysql);
     if(!res&&mysql_field_count(m_mysql)){
-        logger_error("delete database fail: %s, sql: %s",mysql_error(m_mysql),sql.c_str());
+        logger_error("delete database fail: %s, sql: %s.",mysql_error(m_mysql),sql.c_str());
         return ERROR;
     }
     return OK;
 }
 // 根据用户名来获取其对应的表名
 std::string db_c::table_of_user(char const* userid) const{
-    char tablename[10];
-    sprintf(tablename,"t_file_%02d",hash(userid,strlen(userid)&0x7fffffff)%3+1);
+    char tablename[10];     // t_file_01，一共9个字符，最后一个为'\0'
+    sprintf(tablename,"t_file_%02d",(hash(userid,strlen(userid))&0x7fffffff)%3+1);
     return tablename;
 }
 // 计算哈希值

@@ -20,7 +20,7 @@ db_c::~db_c(){
 int db_c::connect(void){
     MYSQL* mysql=m_mysql;
     for(std::vector<std::string>::const_iterator maddr=g_maddrs.begin();maddr!=g_maddrs.end();++maddr){
-        if(mysql_real_connect(mysql,maddr->c_str(),"root","123456","tnv_idsdb",0,nullptr,0)) return OK;
+        if((mysql_real_connect(mysql,maddr->c_str(),"root","123456","tnv_idsdb",0,nullptr,0))) return OK;
     }
     logger_error("connect database fail: %s",mysql_error(m_mysql=mysql));
     return ERROR;
@@ -31,16 +31,16 @@ int db_c::get(char const* key,int inc,long *value) const{
     mysql_autocommit(m_mysql,0);
     // 查询数据库
     acl::string sql;
-    sql.format("SELECT id_vale FROM t_id_gen WHERE id='%s';",key);
+    sql.format("SELECT id_value FROM t_id_gen WHERE id='%s';",key);
     if(mysql_query(m_mysql,sql.c_str())){
-        logger_error("query database fail: %s, sql: %s",mysql_error(m_mysql),sql.c_str());
-        mysql_autocommit(m_mysql,1);
+        logger_error("query database fail: %s, sql: %s.",mysql_error(m_mysql),sql.c_str());
+        mysql_autocommit(m_mysql,1);    // 打开自动提交
         return ERROR;
     }
     // 获取查询结果
     MYSQL_RES* res=mysql_store_result(m_mysql);
     if(!res){
-        logger_error("result is null: %s, sql: %s",mysql_error(m_mysql),sql.c_str());
+        logger_error("result is null: %s, sql: %s.",mysql_error(m_mysql),sql.c_str());
         mysql_autocommit(m_mysql,1);
         return ERROR;
     }
@@ -51,7 +51,7 @@ int db_c::get(char const* key,int inc,long *value) const{
         // 更新旧记录
         sql.format("UPDATE t_id_gen SET id_value=id_value+%d WHERE id='%s';",inc,key);
         if(mysql_query(m_mysql,sql.c_str())){
-            logger_error("update database fail: %s, sql: %s",mysql_error(m_mysql),sql.c_str());
+            logger_error("update database fail: %s, sql: %s.",mysql_error(m_mysql),sql.c_str());
             mysql_autocommit(m_mysql,1);
             return ERROR;
         }
@@ -64,7 +64,7 @@ int db_c::get(char const* key,int inc,long *value) const{
         // 插入记录
         sql.format("INSERT INTO t_id_gen SET id='%s', id_value='%d';",key,inc);
         if(mysql_query(m_mysql,sql.c_str())){
-            logger_error("insert database fail: %s, sql: %s",mysql_error(m_mysql),sql.c_str());
+            logger_error("insert database fail: %s, sql: %s.",mysql_error(m_mysql),sql.c_str());
             mysql_autocommit(m_mysql,1);
             return ERROR;
         }

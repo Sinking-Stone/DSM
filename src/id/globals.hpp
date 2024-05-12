@@ -19,6 +19,6 @@ extern int cfg_maxoffset;               // 最大偏移
 extern acl::master_int_tbl cfg_int[];   // 整形配置表
 
 extern std::vector<std::string> g_maddrs;   // MySQL地址表
-extern std::string g_hostname;              // 主机名
-extern std::vector<id_pair_t> g_ids;        // ID表
+extern std::string              g_hostname; // 主机名
+extern std::vector<id_pair_t>   g_ids;      // ID表
 extern pthread_mutex_t          g_mutex;    // 互斥锁

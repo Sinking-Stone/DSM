@@ -15,7 +15,7 @@ long id_c::get(char const* key)const{
     // 检查ID键
     if(!key){
         logger_error("key is null.");
-        return -1;
+        return -1;// 语法上返回OK或者ERROR是可以的，但是这里返回-1，是因为这个函数的返回值是long的正数
     }
     size_t keylen=strlen(key);
     if(!keylen){
@@ -49,10 +49,10 @@ long id_c::client(char const* requ,long long requlen) const{
     int nrand=rand()%nids;
     for(int i=0;i<nids;++i){
         if(conn.open(g_iaddrs[nrand].c_str(),0,0)){
-            logger("connect id sucess, addr: %s",g_iaddrs[nrand].c_str());
+            logger("connect id sucess, addr: %s.",g_iaddrs[nrand].c_str());
             break;
         }else{
-            logger("connect id fail, addr: %s",g_iaddrs[nrand].c_str());
+            logger("connect id fail, addr: %s.",g_iaddrs[nrand].c_str());
             nrand=(nrand+1)%nids;
         }
     }

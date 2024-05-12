@@ -1,6 +1,7 @@
 /**
  * (03_util)实用工具
  * wfl:2024-3-29
+ * change:2024-5-11
 */
 // 公共模块
 // 定义几个实用函数
@@ -11,10 +12,10 @@
 #include <string.h>
 
 // long long类型整数主机序转为网络序
-void llton(long long ll,char*n){
+void llton(long long ll,char* n){
     // n[0]=ll>>56; n[1]=ll>>48; n[2]=ll>>40; n[3]=ll>>32;
     // n[4]=ll>>24; n[5]=ll>>16; n[6]=ll>> 8; n[7]=ll>> 0;
-    for(int i=0;i<8;++i){
+    for(size_t i=0;i<sizeof(ll);++i){
         n[i]=ll>>(sizeof(ll)-i-1)*8;
     }
 }
@@ -24,37 +25,37 @@ long long ntoll(char const* n){
     // ll|=(long long)(unsigned char)n[0]<<56;
     // ll|=(long long)(unsigned char)n[1]<<48;
     // ll|=(long long)(unsigned char)n[2]<<40;
-    for(int i=0;i<8;++i){
+    for(size_t i=0;i<sizeof(ll);++i){
         ll|=(long long)(unsigned char)n[i]<<(sizeof(ll)-i-1)*8;
     }
     return ll;
 }
 
 // long类型整数主机序转为网络序
-void lton(long l,char*n){
-    for(int i=0;i<8;++i){
+void lton(long l,char* n){
+    for(size_t i=0;i<sizeof(l);++i){
         n[i]=l>>(sizeof(l)-i-1)*8;
     }
 }
 // long类型整数网络序转为主机序
 long ntol(char const* n){
     long l=0;
-    for(int i=0;i<8;++i){
+    for(size_t i=0;i<sizeof(l);++i){
         l|=(long)(unsigned char)n[i]<<(sizeof(l)-i-1)*8;
     }
     return l;
 }
 
 // short类型整数主机序转为网络序
-void ston(short s,char*n){
-    for(int i=0;i<8;++i){
+void ston(short s,char* n){
+    for(size_t i=0;i<sizeof(s);++i){
         n[i]=s>>(sizeof(s)-i-1)*8;
     }
 }
 // short类型整数网络序转为主机序
 short ntos(char const* n){
     short s;
-    for(int i=0;i<8;++i){
+    for(size_t i=0;i<sizeof(s);++i){
         s|=(short)(unsigned char)n[i]<<(sizeof(s)-i-1)*8;
     }
     return s;
@@ -80,7 +81,7 @@ int split(char const* str,std::vector<std::string>& substrs){
     if(!len) return ERROR;
     char *buf=new char[len+1];
     strcpy(buf,str);
-    char const* sep="s";
+    char const* sep=";";
     for(char *substr=strtok(buf,sep);substr;substr=strtok(nullptr,sep))
         substrs.push_back(substr);
     delete[] buf;

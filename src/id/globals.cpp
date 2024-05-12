@@ -22,6 +22,6 @@ acl::master_int_tbl cfg_int[]={  // 整形配置表
 };
 
 std::vector<std::string> g_maddrs;   // MySQL地址表
-std::string g_hostname;              // 主机名
-std::vector<id_pair_t> g_ids;        // ID表
+std::string              g_hostname; // 主机名
+std::vector<id_pair_t>   g_ids;      // ID表
 pthread_mutex_t  g_mutex=PTHREAD_MUTEX_INITIALIZER;     // 互斥锁

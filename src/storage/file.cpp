@@ -11,8 +11,8 @@
 #include "types.hpp"
 
 file_c::file_c(void):m_fd(-1){
-
 }
+
 file_c::~file_c(void){
     close();
 }
@@ -94,7 +94,7 @@ int file_c::write(void const* buf,size_t count) const{
     return OK;
 }
 
-// 设置偏移
+// 设置偏移(相对于文件开头偏移)
 int file_c::seek(off_t offset) const{
     // 检查文件描述符
     if(m_fd==-1){
@@ -106,7 +106,7 @@ int file_c::seek(off_t offset) const{
         logger_error("invalid file offset.");
         return ERROR;
     }
-    // 设置文件偏移量
+    // 设置文件偏移量，SEEK_SET表示相对于文件头
     if(lseek(m_fd,offset,SEEK_SET)==-1){
         logger_error("call write fail: %s, offset: %ld.",strerror(errno),offset);
         return ERROR;
@@ -120,7 +120,7 @@ int file_c::del(char const* path){
         logger_error("path is null.");
         return ERROR;
     }
-    // 删除文件
+    // 删除文件，unlink函数用于删除文件
     if(unlink(path)==-1){
         logger_error("call unlink fail: %s, path: %s.",strerror(errno),path);
         return ERROR;

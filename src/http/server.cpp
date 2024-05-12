@@ -41,7 +41,7 @@ bool server_c::thread_on_accept(acl::socket_stream* conn){
     logger("connect, from: %s.",conn->get_peer());
     // 设置读写超时
     conn->set_rw_timeout(cfg_rtimeout);
-    // 创建会话
+    // 创建会话，根据配置选择redis集群或memcache本地的缓存会话
     acl::session* session=cfg_rsession?(acl::session*)new acl::redis_session(*m_redis,cfg_maxthrds):(acl::session*)new acl::memcache_session("127.0.0.1:11211");
     // 创建并设置业务服务对象
     conn->set_ctx(new service_c(conn,session));
@@ -49,9 +49,9 @@ bool server_c::thread_on_accept(acl::socket_stream* conn){
 }
 // 与线程绑定的连接可读时被调用
 bool server_c::thread_on_read(acl::socket_stream* conn){
-    service_c* service=(service_c*) conn->get_ctx();
-    if(!service) logger_fatal("sevice is null");
-    return service->doRun();
+    service_c* service=(service_c*) conn->get_ctx();    // 获得连接节点所绑定的对象地址
+    if(!service) logger_fatal("sevice is null.");
+    return service->doRun();    // 调用业务服务对象的处理函数，内部是调用的doGet、doPost等函数
 }
 // 线程读写连接超时时被调用
 bool server_c::thread_on_timeout(acl::socket_stream* conn){
@@ -62,8 +62,8 @@ bool server_c::thread_on_timeout(acl::socket_stream* conn){
 // 与线程绑定的连接即将关闭时被调用
 void server_c::thread_on_close(acl::socket_stream* conn){
     logger("client disconnect, from: %s.",conn->get_peer());
-    service_c* service=(service_c*)conn->get_ctx();
-    acl::session* session=&service->getSession();
+    service_c* service=(service_c*)conn->get_ctx(); // 获得连接节点所绑定的对象地址
+    acl::session* session=&service->getSession();   // 获得业务服务对象的会话对象
     delete session;
     delete service;
 }

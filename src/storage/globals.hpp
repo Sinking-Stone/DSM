@@ -34,7 +34,7 @@ extern std::vector<std::string> g_iaddrs;   // ID服务器地址表
 extern std::vector<std::string> g_maddrs;   // MySQL地址表
 extern std::vector<std::string> g_raddrs;   // Redis地址表
 extern acl::redis_client_pool*  g_rconns;   // Redis连接池
-extern std::string g_hostname;              // 主机名
+extern std::string              g_hostname; // 主机名
 
-extern char const* g_version;               // 版本
-extern time_t g_stime;                      // 启动时间
+extern char const*              g_version;  // 版本
+extern time_t                   g_stime;    // 启动时间

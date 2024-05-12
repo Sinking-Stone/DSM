@@ -8,7 +8,8 @@ AR     = ar rv
 RM     = rm -rf
 CFLAGS = -c -Wall \
          -I/usr/include/acl-lib/acl -I/usr/include/acl-lib/acl_cpp \
-         -I../common
+         -I../common \
+		 -g -F dwarf
 LIBS   = -pthread -lacl_all
 
 all: $(PROJ) $(LPRJ)

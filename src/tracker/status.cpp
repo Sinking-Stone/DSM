@@ -37,7 +37,7 @@ int status_c::check(void) const{
     time_t now=time(nullptr);
     // 互斥锁加锁
     if((errno=pthread_mutex_lock(&g_mutex))){
-        logger_error("call pthread_mutex_lock fail: %s",strerror(errno));
+        logger_error("call pthread_mutex_lock fail: %s.",strerror(errno));
         return ERROR;
     }
     // 遍历组表中的每一组
@@ -53,7 +53,7 @@ int status_c::check(void) const{
     //互斥锁解锁
     if((errno=pthread_mutex_unlock(&g_mutex))){
         logger_error("call pthread_mutex_unlock fail: %s.",strerror(errno));
-        return false;
+        return ERROR;
     }
     return OK;
 }

@@ -12,10 +12,10 @@
 #include "mngr.hpp"
 #include "client.hpp"
 
-#define MAX_SOCKERRS 10                         // 套接字通信错误最大次数
-acl::connect_manager*    client_c::s_mngr  =nullptr;      // 连接池管理器
-std::vector<std::string> client_c::s_taddrs;              // 跟踪服务器地址列表
-int                      client_c::s_scount=18;           // 存储服务器连接数上限
+#define MAX_SOCKERRS 10                               // 套接字通信错误最大次数
+acl::connect_manager*    client_c::s_mngr  =nullptr;  // 连接池管理器
+std::vector<std::string> client_c::s_taddrs;          // 跟踪服务器地址列表
+int                      client_c::s_scount=18;       // 存储服务器连接数上限
 
 // 初始化
 int client_c::init(char const* taddrs,int tcount,int scount){
@@ -47,7 +47,7 @@ int client_c::init(char const* taddrs,int tcount,int scount){
         return ERROR;
     }
     // 初始化跟踪服务器连接池
-    s_mngr->init(nullptr,taddrs,tcount);
+    s_mngr->init(nullptr,taddrs,tcount);    
     return OK;
 }
 // 终结化
@@ -89,12 +89,12 @@ int client_c::saddrs(char const* appid,char const* userid,char const* fileid,std
             }
             // 从跟踪服务器获取存储服务器地址列表
             result=tconn->saddrs(appid,userid,fileid,saddrs);
-            if(result==SOCKET_ERROR){
+            if(result==SOCKET_ERROR){   // 套接字通信错误
                 logger_warn("get storage address fail: %s.",tconn->errdesc());
                 tpool->put(tconn,false);
-            }else{
-                if(result==OK) tpool->put(tconn,true);
-                else{
+            }else{  // 不是通讯错误
+                if(result==OK) tpool->put(tconn,true);  // 成功，放回连接池
+                else{   // 失败，将这个连接删除，不再使用
                     logger_error("get storage address fail: %s.",tconn->errdesc());
                     tpool->put(tconn,false);
                 } 
@@ -150,7 +150,7 @@ int client_c::groups(std::string &groups){
     return result;
 }
 
-// 向存储服务器上传文件
+// 向存储服务器上传文件（面向磁盘上传）
 int client_c::upload(char const* appid,char const* userid,char const* fileid,char const* filepath){
     // 检查
     if(!appid||!strlen(appid)){
@@ -171,7 +171,7 @@ int client_c::upload(char const* appid,char const* userid,char const* fileid,cha
     }
     // 从跟踪服务器获取存储服务器地址列表
     int result;
-    std::string ssaddrs;
+    std::string ssaddrs;    // 存储服务器地址列表，以逗号分隔：string storage addresses
     if((result=saddrs(appid,userid,fileid,ssaddrs))!=OK) return result;
     std::vector<std::string> vsaddrs;
     split(ssaddrs.c_str(),vsaddrs);
@@ -186,7 +186,7 @@ int client_c::upload(char const* appid,char const* userid,char const* fileid,cha
         if(!spool){
             s_mngr->set(saddr->c_str(),s_scount);
             if(!(spool=(pool_c*)s_mngr->get(saddr->c_str()))){
-                logger_warn("storage connection pool is null,sadd: %s.",saddr->c_str());
+                logger_warn("storage connection pool is null, sadd: %s.",saddr->c_str());
                 continue;
             }
         }
@@ -207,6 +207,7 @@ int client_c::upload(char const* appid,char const* userid,char const* fileid,cha
                 else{
                     logger_error("upload file fail: %s.",sconn->errdesc());
                     spool->put(sconn,false);
+                    continue;
                 } 
                 return result;
             }
@@ -214,7 +215,7 @@ int client_c::upload(char const* appid,char const* userid,char const* fileid,cha
     }
     return result;
 }
-// 向存储服务器上传文件
+// 向存储服务器上传文件（面向内存上传）
 int client_c::upload(char const* appid,char const* userid,char const* fileid,char const* filedata,long long filesize){
     // 检查
     if(!appid||!strlen(appid)){

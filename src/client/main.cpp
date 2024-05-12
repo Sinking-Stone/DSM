@@ -12,15 +12,15 @@
 
 void usage(char const* cmd){
     // ./client 127.0.0.1:21000 groups
-    fprintf(stderr,"Group: %s <taddrs> groups\n",cmd);
+    fprintf(stderr,"Group:    %s <taddrs> groups\n",cmd);
     // ./client 127.0.0.1:21000 upload tnvideo tnv001 ~/Videos/001.mp4 -> 00a...eb8
-    fprintf(stderr,"Upload: %s <taddrs> upload <appid> <userid> <filepath>\n",cmd);
+    fprintf(stderr,"Upload:   %s <taddrs> upload <appid> <userid> <filepath>\n",cmd);
     // ./client 127.0.0.1:21000 filesize tnvideo tnv001 00a...eb8
     fprintf(stderr,"Filesize: %s <taddrs> filesize <appid> <userid> <fileid>\n",cmd);
     // ./client 127.0.0.1:21000 download tnvideo tnv001 00a...eb8 1024 2048
     fprintf(stderr,"Download: %s <taddrs> download <appid> <userid> <fileid> <offset> <size>\n",cmd);
     // ./client 127.0.0.1:21000 delete tnvideo tnv001 00a...eb8 
-    fprintf(stderr,"Delete: %s <taddrs> delete <appid> <userid> <fileid>\n",cmd);
+    fprintf(stderr,"Delete:   %s <taddrs> delete <appid> <userid> <fileid>\n",cmd);
 }
 
 // 根据用户ID生成文件ID
@@ -32,14 +32,14 @@ std::string genfileid(char const* userid){
     str.format("%s@%d%lx@%d",userid,getpid(),acl_pthread_self(),rand());
 
     acl::md5 md5;
-    md5.update(str.c_str(),str.size());
-    md5.finish();
+    md5.update(str.c_str(),str.size()); // 将str给md5
+    md5.finish();                       // 计算str的MD5值
     char buf[33]={};
-    strncpy(buf,md5.get_string(),32);
-    memmove(buf,buf+8,16);
-    memset(buf+16,0,16);
+    strncpy(buf,md5.get_string(),32);   // 32位的MD5字符值赋给buf
+    memmove(buf,buf+8,16);              // 将buf的后16位移到前16位，表示不要前面的8位
+    memset(buf+16,0,16);                // 将buf的后16位清零，这两句表示只要中间的8位
     static int count=0;
-    if(count>=8000) count=0;
+    if(count>=8000) count=0;            // 限制count的范围：0-7999
     acl::string fileid;
     fileid.format("%08lx%06lx%s%04d%02d",now.tv_sec,now.tv_usec,buf,++count,rand()%100);
     return fileid.c_str();
@@ -85,7 +85,7 @@ int main(int argc,char *argv[]){
             client_c::deinit();
             return -1;
         }
-        printf("Upload success: %s\n",fileid.c_str());
+        printf("Upload success: %s.\n",fileid.c_str());
     }
     // 向存储服务器询问文件大小
     else if(!strcmp(subcmd,"filesize")){
@@ -102,7 +102,7 @@ int main(int argc,char *argv[]){
             client_c::deinit();
             return -1;
         }
-        printf("Get filesize success: %lld\n",filesize);
+        printf("Get filesize success: %lld.\n",filesize);
     }
     // 从存储服务器下载文件
     else if(!strcmp(subcmd,"download")){
@@ -122,7 +122,7 @@ int main(int argc,char *argv[]){
             client_c::deinit();
             return -1;
         }
-        printf("Download success: %lld\n",filesize);
+        printf("Download success: %lld.\n",filesize);
         free(filedata);
     }
     // 删除存储服务器上的文件
@@ -139,7 +139,7 @@ int main(int argc,char *argv[]){
             client_c::deinit();
             return -1;
         }
-        printf("Delete success: %s\n",fileid);
+        printf("Delete success: %s.\n",fileid);
     }
     else{
         client_c::deinit();

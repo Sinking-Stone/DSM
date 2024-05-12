@@ -16,9 +16,9 @@
 #define HEADLEN (BODYLEN_SIZE + COMMAND_SIZE + STATUS_SIZE) // 包头长度
 
 // |包体长度|命令 | 状态|错误号|  错误描述 |
-// | 8字节 |1字节|1字节|1字节 |<=1024字节|
-#define ERROR_NUMB_SIZE 1       // 错误号字节数
-#define ERROR_DESC_SIZE 1024    // 错误描述最大字节数
+// | 8字节 |1字节|1字节|2字节 |<=1024字节|
+#define ERROR_NUMB_SIZE 2       // 错误号字节数
+#define ERROR_DESC_SIZE 1024    // 错误描述最大字节数（含结尾空字符）
 
 // |包体长度|命令 | 状态|应用ID|用户ID| 文件ID |
 // | 8字节 |1字节|1字节|16字节|256字节|128字节|
@@ -49,10 +49,10 @@ typedef struct storage_beat_body {
 
 #define CMD_ID_GET         40   // 存储服务器向ID服务器获取ID
 
-#define CMD_STORAGE_UPLOAD   70 // 客户向存储服务器上传文件
-#define CMD_STORAGE_FILESIZE 71 // 客户向存储服务器询问文件大小
-#define CMD_STORAGE_DOWNLOAD 72 // 客户向存储服务器下载文件
-#define CMD_STORAGE_DELETE   73 // 客户删除存储服务器上的文件
+#define CMD_STORAGE_UPLOAD   70 // 客户机向存储服务器上传文件
+#define CMD_STORAGE_FILESIZE 71 // 客户机向存储服务器询问文件大小
+#define CMD_STORAGE_DOWNLOAD 72 // 客户机向存储服务器下载文件
+#define CMD_STORAGE_DELETE   73 // 客户机删除存储服务器上的文件
 
 
 #define CMD_TRACKER_REPLY   100 // 跟踪服务器应答

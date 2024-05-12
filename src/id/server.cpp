@@ -18,10 +18,10 @@ void server_c::proc_on_init(void){
     if(g_maddrs.empty())  logger_fatal("mysql addresses is empty.");
     // 主机名
     char hostname[256+1]={};
-    if(gethostname(hostname,sizeof(hostname)-1)) logger_error("call gethostname fail: %s",strerror(errno));
+    if(gethostname(hostname,sizeof(hostname)-1)) logger_error("call gethostname fail: %s.",strerror(errno));
     g_hostname=hostname;
     // 最大偏移不能太小
-    if(cfg_maxoffset<10) logger_fatal("invalid maxmum offset: %d < 10",cfg_maxoffset);
+    if(cfg_maxoffset<10) logger_fatal("invalid maxmum offset: %d < 10.",cfg_maxoffset);
     
     // 打印配置信息
     logger("cfg_maddrs: %s, cfg_mtimeout: %d, cfg_maxoffset: %d.",cfg_maddrs,cfg_mtimeout,cfg_maxoffset);

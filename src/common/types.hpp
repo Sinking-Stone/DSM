@@ -14,9 +14,9 @@
 #define SOCKET_ERROR       -2   // 套接字通信错误
 #define STATUS_ERROR       -3   // 服务器状态异常
 
-// 缓存
+// 缓存，为了解决多个服务器公用一个redis缓存，造成键冲突
 #define TRACKER_REDIS_PREFIX "tracker"      // 跟踪服务器Redis前缀
-#define STORAGE_REDIS_PREFIX "storage"      // 存储服务器Redis过期后缀
+#define STORAGE_REDIS_PREFIX "storage"      // 存储服务器Redis前缀
 
 // 存储服务器状态
 typedef enum storage_status{
@@ -57,10 +57,10 @@ typedef struct storage_info{
 
 typedef struct id_pair{
     char id_key[ID_KEY_MAX+1];  // 键
-    long id_value;              // ID
-    int id_offset;              // 偏移量
+    long id_value;              // 值       （这里主要是在从数据库中取值时更新）
+    int id_offset;              // 偏移量   （偏移量主要是在取值的时候更新）
 } id_pair_t;                    // ID键值对
 
 // 存储服务器读写磁盘文件缓冲区
-#define STORAGE_RCVWR_SIZE (512 * 1024)     // 接收写入缓冲区字节数
+#define STORAGE_RCVWR_SIZE (512 * 1024)     // 接收写入缓冲区字节数（这是512K，也就是0.5M）
 #define STORAGE_RDSND_SIZE (512 * 1024)     // 读取写入缓冲区字节数

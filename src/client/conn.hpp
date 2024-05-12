@@ -13,15 +13,15 @@
 class conn_c: public acl::connect_client
 {
 public:
-    conn_c(char const* destaddr,int ctimeout=30,int rtimeout=60);
+    conn_c(char const* destaddr,int ctimeout=30,int rtimeout=60);// 后两个参数表示连接超时，读写超时
     ~conn_c(void);
     // 从跟踪服务器获取存储服务器地址列表
     int saddrs(char const* appid,char const* userid,char const* fileid,std::string &saddrs);
     // 从跟踪服务器获取组列表
     int groups(std::string& groups);
-    // 向存储服务器上传文件
+    // 向存储服务器上传文件（面向磁盘路径的）
     int upload(char const* appid,char const* userid,char const* fileid,char const* filepath);
-    // 向存储服务器上传文件
+    // 向存储服务器上传文件（面向内存的）
     int upload(char const* appid,char const* userid,char const* fileid,char const* filedata,long long filesize);
     // 向存储服务器询问文件大小
     int filesize(char const* appid,char const* userid,char const* fileid,long long* filesize);

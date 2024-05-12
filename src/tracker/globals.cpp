@@ -39,4 +39,4 @@ std::vector<std::string> g_raddrs;   // Redis地址表
 acl::redis_client_pool*  g_rconns;   // Redis连接池
 std::string g_hostname;              // 主机名
 std::map<std::string,std::list<storage_info_t>> g_groups;       // 组表
-pthread_mutex_t          g_mutex=PTHREAD_MUTEX_INITIALIZER;     // 互斥锁
+pthread_mutex_t          g_mutex=PTHREAD_MUTEX_INITIALIZER;     // 互斥锁（表示静态初始化互斥锁）

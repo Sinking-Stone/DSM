@@ -10,17 +10,17 @@
 #include <string>
 
 // long long类型整数主机序转为网络序
-void llton(long long ll,char*n);
+void llton(long long ll,char* n);
 // long long类型整数网络序转为主机序
 long long ntoll(char const* n);
 
 // long类型整数主机序转为网络序
-void lton(long l,char*n);
+void lton(long l,char* n);
 // long类型整数网络序转为主机序
 long ntol(char const* n);
 
 // short类型整数主机序转为网络序
-void ston(short s,char*n);
+void ston(short s,char* n);
 // short类型整数网络序转为主机序
 short ntos(char const* n);
 

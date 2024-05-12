@@ -18,6 +18,7 @@ bool service_c::business(acl::socket_stream *conn,char const* head) const{
     long long bodylen=ntoll(head);
     if(bodylen<0){
         error(conn,-1,"invalid body length: %lld < 0.",bodylen);
+        return false;
     }
     int command=head[BODYLEN_SIZE];
     int status=head[BODYLEN_SIZE+COMMAND_SIZE];
@@ -30,7 +31,7 @@ bool service_c::business(acl::socket_stream *conn,char const* head) const{
         result=get(conn,bodylen);
         break;
     default:
-        error(conn,-1,"unknow command: %d < 0.",command);
+        error(conn,-1,"unknow command: %d.",command);
         return false;
     }
     return result;
@@ -39,7 +40,7 @@ bool service_c::business(acl::socket_stream *conn,char const* head) const{
 // 处理来自存储服务器的获取ID请求
 bool service_c::get(acl::socket_stream* conn, long long bodylen) const{
     // |包体长度|命令|状态|ID键|
-    // |   8   | 1 | 1 |64+1|
+    // |   8   | 1  | 1  |64+1|
     // 检查包体长度
     long long expected=ID_KEY_MAX+1;     // 期望包体长度
     if(bodylen>expected){
@@ -49,7 +50,7 @@ bool service_c::get(acl::socket_stream* conn, long long bodylen) const{
     // 接收包体
     char body[bodylen];
     if(conn->read(body,bodylen)<0){
-        logger_error("read fail: %s, bodylen: %lld, from: %s",acl::last_serror(),bodylen,conn->get_peer());
+        logger_error("read fail: %s, bodylen: %lld, from: %s.",acl::last_serror(),bodylen,conn->get_peer());
         return false;
     }
     // 根据ID的键获取其值
@@ -58,7 +59,7 @@ bool service_c::get(acl::socket_stream* conn, long long bodylen) const{
         error(conn,-1,"get id fail, key: %s.",body);
         return false;
     }
-    logger("get id ok, key: %s, value: %ld",body, value);
+    logger("get id ok, key: %s, value: %ld.",body, value);
     return id(conn,value);
 }
 
@@ -66,7 +67,7 @@ bool service_c::get(acl::socket_stream* conn, long long bodylen) const{
 long service_c::get(char const* key) const{
     // 互斥锁加锁
     if((errno=pthread_mutex_lock(&g_mutex))){
-        logger_error("call pthread_mutex_lock fail: %s",strerror(errno));
+        logger_error("call pthread_mutex_lock fail: %s.",strerror(errno));
         return -1;
     }
     // 在ID表中查找ID
@@ -118,10 +119,10 @@ long service_c::fromdb(char const* key) const{
     return value;
 }
 
-// 应答成功
+// 应答ID
 bool service_c::id(acl::socket_stream* conn,long value) const{
     // |包体长度|命令|状态|ID值|
-    // |   8   | 1 | 1 |  8 |
+    // |   8   | 1  | 1 |  8 |
     // 构造响应
     long long bodylen=BODYLEN_SIZE;
     long long resplen=HEADLEN+bodylen;

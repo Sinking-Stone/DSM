@@ -1,7 +1,8 @@
 /**
  * (12_service)存储服务器服务类
  * wfl:2024-4-4
-*/
+ * change:2024-5-9
+ */
 // ID服务器
 // 实现业务服务类
 #include <linux/limits.h>
@@ -22,6 +23,7 @@ bool service_c::business(acl::socket_stream *conn,char const* head) const{
     long long bodylen=ntoll(head);
     if(bodylen<0){
         error(conn,-1,"invalid body length: %lld < 0.",bodylen);
+        return false;
     }
     int command=head[BODYLEN_SIZE];
     int status=head[BODYLEN_SIZE+COMMAND_SIZE];
@@ -46,7 +48,7 @@ bool service_c::business(acl::socket_stream *conn,char const* head) const{
         result=del(conn,bodylen);
         break;
     default:
-        error(conn,-1,"unknow command: %d < 0.",command);
+        error(conn,-1,"unknow command: %d.",command);
         return false;
     }
     return result;
@@ -55,17 +57,17 @@ bool service_c::business(acl::socket_stream *conn,char const* head) const{
 // 处理来自客户机的上传文件请求
 bool service_c::upload(acl::socket_stream* conn, long long bodylen) const{
     // |包体长度|命令|状态|应用ID|用户ID|文件ID|文件大小|文件内容|
-    // |   8  |  1 | 1 | 16  | 256 |  128 |   8   |文件大小|
+    // |   8   |  1 | 1 |  16  | 256  |  128 |   8   |文件大小|
     // 检查包体长度
     long long expected=APPID_SIZE+USERID_SIZE+FILEID_SIZE+BODYLEN_SIZE;
     if(bodylen<expected){
-        error(conn,-1,"invalid body length: %lld < %lld",bodylen,expected);
+        error(conn,-1,"invalid body length: %lld < %lld.",bodylen,expected);
         return false;
     }
     // 接收包体
     char body[expected];
-    if(conn->read(body,expected)<0){
-        logger_error("read fail: %s, expected: %lld, from: %s",acl::last_serror(),expected,conn->get_peer());
+    if(conn->read(body,expected)<0){    // 通信失败
+        logger_error("read fail: %s, expected: %lld, from: %s.",acl::last_serror(),expected,conn->get_peer());
         return false;
     }
     // 解析包体
@@ -84,7 +86,7 @@ bool service_c::upload(acl::socket_stream* conn, long long bodylen) const{
     }
     // 生成文件路径
     char filepath[PATH_MAX+1];
-    if(genpath(filepath)!=OK){
+    if(genpath(filepath)!=OK){      // 生成文件路径失败，genpath函数在下面实现
         error(conn,-1,"get file fail.");
         return false;
     }
@@ -102,17 +104,17 @@ bool service_c::upload(acl::socket_stream* conn, long long bodylen) const{
 // 处理来自客户机的询问文件大小请求
 bool service_c::filesize(acl::socket_stream* conn, long long bodylen) const{
     // |包体长度|命令|状态|应用ID|用户ID|文件ID|
-    // |   8  |  1 | 1 | 16  | 256 |  128 |
+    // |   8   |  1 | 1 |  16  |  256 |  128 |
     // 检查包体长度
     long long expected=APPID_SIZE+USERID_SIZE+FILEID_SIZE;
     if(bodylen!=expected){
-        error(conn,-1,"invalid body length: %lld != %lld",bodylen,expected);
+        error(conn,-1,"invalid body length: %lld != %lld.",bodylen,expected);
         return false;
     }
     // 接收包体
     char body[expected];
     if(conn->read(body,expected)<0){
-        logger_error("read fail: %s, expected: %lld, from: %s",acl::last_serror(),expected,conn->get_peer());
+        logger_error("read fail: %s, expected: %lld, from: %s.",acl::last_serror(),expected,conn->get_peer());
         return false;
     }
     // 解析包体
@@ -147,7 +149,7 @@ bool service_c::filesize(acl::socket_stream* conn, long long bodylen) const{
     llton(filesize,resp+HEADLEN);
     // 发送响应
     if(conn->write(resp,resplen)<0){
-        logger_error("write fail: %s, resplen: %lld, to: %s",acl::last_serror(),resplen,conn->get_peer());
+        logger_error("write fail: %s, resplen: %lld, to: %s.",acl::last_serror(),resplen,conn->get_peer());
         return false;
     }
     return true;
@@ -156,17 +158,17 @@ bool service_c::filesize(acl::socket_stream* conn, long long bodylen) const{
 // 处理来自客户机的下载请求
 bool service_c::download(acl::socket_stream* conn,long long bodylen) const{
     // |包体长度|命令|状态|应用ID|用户ID|文件ID|偏移|大小|
-    // |   8  |  1 | 1 | 16  | 256 |  128 |  8 | 8 |
+    // |   8   |  1 |  1 | 16  |  256 |  128 |  8 | 8 |
     // 检查包体长度
     long long expected=APPID_SIZE+USERID_SIZE+FILEID_SIZE+BODYLEN_SIZE+BODYLEN_SIZE;
     if(bodylen!=expected){
-        error(conn,-1,"invalid body length: %lld != %lld",bodylen,expected);
+        error(conn,-1,"invalid body length: %lld != %lld.",bodylen,expected);
         return false;
     }
     // 接收包体
     char body[expected];
     if(conn->read(body,expected)<0){
-        logger_error("read fail: %s, bodylen: %lld, from: %s",acl::last_serror(),bodylen,conn->get_peer());
+        logger_error("read fail: %s, bodylen: %lld, from: %s.",acl::last_serror(),bodylen,conn->get_peer());
         return false;
     }
     // 解析包体
@@ -218,17 +220,17 @@ bool service_c::download(acl::socket_stream* conn,long long bodylen) const{
 // 处理来自客户机的删除请求
 bool service_c::del(acl::socket_stream* conn,long long bodylen) const{
     // |包体长度|命令|状态|应用ID|用户ID|文件ID|
-    // |   8  |  1 | 1 | 16  | 256 |  128 |
+    // |   8   |  1 | 1  | 16  |  256 |  128 |
     // 检查包体长度
     long long expected=APPID_SIZE+USERID_SIZE+FILEID_SIZE;
     if(bodylen!=expected){
-        error(conn,-1,"invalid body length: %lld != %lld",bodylen,expected);
+        error(conn,-1,"invalid body length: %lld != %lld.",bodylen,expected);
         return false;
     }
     // 接收包体
     char body[expected];
     if(conn->read(body,expected)<0){
-        logger_error("read fail: %s, expected: %lld, from: %s",acl::last_serror(),expected,conn->get_peer());
+        logger_error("read fail: %s, expected: %lld, from: %s.",acl::last_serror(),expected,conn->get_peer());
         return false;
     }
     // 解析包体
@@ -242,7 +244,7 @@ bool service_c::del(acl::socket_stream* conn,long long bodylen) const{
     db_c db;
     // 连接数据库
     if(db.connect()!=OK) return false;
-    // 文件路径文件大小
+    // 文件路径、文件大小
     std::string filepath;
     long long filesize;
     // 根据文件ID获取其对应的路径及大小
@@ -257,7 +259,7 @@ bool service_c::del(acl::socket_stream* conn,long long bodylen) const{
     }
     // 删除文件
     if(file_c::del(filepath.c_str())!=OK){
-        error(conn,-1,"delete database fail, fileid:: %s.",fileid);
+        error(conn,-1,"delete file fail, fileid:: %s.",fileid);
         return false;
     }
     logger("delete file success, appid: %s, userid: %s, fileid: %s, filepath: %s, filesize: %lld.",appid,userid,fileid,filepath.c_str(),filesize);
@@ -285,7 +287,7 @@ int service_c::genpath(char * filepath) const{
 long service_c::id512(long id) const{
     long result=0;
     for(int i=1;id;i*=1000){
-        result+=(id%512)*i;
+        result+=(id%512)*i; // 若需要改成别的进制，只需要将512改成相应的进制数即可
         id/=512;
     }
     return result;
@@ -302,9 +304,9 @@ long service_c::id2path(char const* spath,long fileid,char* filepath) const{
     unsigned short subdir1=(fileid/1000000000)%1000;// 一级子目录
     unsigned short subdir2=(fileid/1000000)%1000;   // 二级子目录
     unsigned short subdir3=(fileid/1000)%1000;      // 三级子目录
-    time_t curtime=time(nullptr);                   // 当前时间戳
-    unsigned short postfix=(fileid/1);              // 文件名后缀
-    // 格式化完成的文件路径
+    time_t   curtime=time(nullptr);                 // 当前时间戳
+    unsigned short postfix=(fileid/1)%1000;         // 文件名后缀
+    // 格式化完成的文件路径，这里要是spath中已经有了/，就不用再加了
     if(spath[strlen(spath)-1]=='/')
         snprintf(filepath,PATH_MAX+1,"%s%03x/%03x/%03x/%lx_%03x",spath,subdir1,subdir2,subdir3,curtime,postfix);
     else snprintf(filepath,PATH_MAX+1,"%s/%03x/%03x/%03x/%lx_%03x",spath,subdir1,subdir2,subdir3,curtime,postfix);
@@ -320,7 +322,7 @@ int service_c::save(acl::socket_stream* conn,char const* appid,char const* useri
     if(file.open(filepath,file_c::O_WRITE)!=OK) return ERROR;
     // 依次将接收到的数据块写入文件
     // 未接收字节数
-    long long remain=filesize;
+    long long remain=filesize;  // remain表示剩余字节数
     // 接收写入缓冲区
     char rcvmr[STORAGE_RCVWR_SIZE];
     // 还有未接收数据
@@ -329,7 +331,7 @@ int service_c::save(acl::socket_stream* conn,char const* appid,char const* useri
         long long bytes=std::min(remain,(long long)sizeof(rcvmr));
         long long count=conn->read(rcvmr,bytes);
         if(count<0){
-            logger_error("read fail: %s, bytes: %lld, from: %s",acl::last_serror(),bytes,conn->get_peer());
+            logger_error("read fail: %s, bytes: %lld, from: %s.",acl::last_serror(),bytes,conn->get_peer());
             file.close();
             return SOCKET_ERROR;
         }
@@ -378,7 +380,7 @@ int service_c::send(acl::socket_stream* conn,char const* filepath,long long offs
     head[BODYLEN_SIZE+COMMAND_SIZE]=0;
     // 发送响应头
     if(conn->write(head,headlen)<0){
-        logger_error("write fail: %s, headlen: %lld to: %s",acl::last_serror(),headlen,conn->get_peer());
+        logger_error("write fail: %s, headlen: %lld to: %s.",acl::last_serror(),headlen,conn->get_peer());
         file.close();
         return SOCKET_ERROR;
     }
@@ -397,7 +399,7 @@ int service_c::send(acl::socket_stream* conn,char const* filepath,long long offs
         }
         // 发送数据
         if(conn->write(rdsend,count)<0){
-            logger_error("write fail: %s, count: %lld to: %s",acl::last_serror(),count,conn->get_peer());
+            logger_error("write fail: %s, count: %lld to: %s.",acl::last_serror(),count,conn->get_peer());
             file.close();
             return SOCKET_ERROR;
         }

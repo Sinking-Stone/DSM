@@ -38,7 +38,8 @@ int conn_c::saddrs(char const* appid,char const* userid,char const* fileid,std::
     if(m_conn->write(requ,requlen)<0){
         logger_error("write fail: %s, requlen: %lld, to: %s.",acl::last_serror(),requlen,m_conn->get_peer());
         m_errnumb=-1;
-        m_errdesc.format("write fail: %s, requlen: %lld, to: %s.",acl::last_serror(),requlen,m_conn->get_peer());
+        m_errdesc.format("write fail: %s, requlen: %lld, to: %s",acl::last_serror(),requlen,m_conn->get_peer());
+        close();
         return SOCKET_ERROR;
     }
     // 包体指针
@@ -80,6 +81,7 @@ int conn_c::groups(std::string& groups){
         logger_error("write fail: %s, requlen: %lld, to: %s.",acl::last_serror(),requlen,m_conn->get_peer());
         m_errnumb=-1;
         m_errdesc.format("write fail: %s, requlen: %lld, to: %s.",acl::last_serror(),requlen,m_conn->get_peer());
+        close();
         return SOCKET_ERROR;
     }
     // 包体指针
@@ -89,11 +91,11 @@ int conn_c::groups(std::string& groups){
     // 解析包体
     if(result==OK)
         // |包体长度|命令|状态| 组列表|
-        // |   8   | 1 | 1 |包体长度|
+        // |   8   | 1  | 1 |包体长度|
         groups=body;
     else if(result==STATUS_ERROR){
         // |包体长度|命令|状态|错误号|存储服务器地址列表|
-        // |   8   | 1 | 1 |  2  |    <=1024     |
+        // |   8   | 1  |  1 |  2  |     <=1024      |
         m_errnumb=ntos(body);
         m_errdesc=bodylen>ERROR_NUMB_SIZE?body+ERROR_NUMB_SIZE:"";
     }
@@ -104,17 +106,17 @@ int conn_c::groups(std::string& groups){
     }
     return result;
 }
-// 向存储服务器上传文件
+// 向存储服务器上传文件（面向磁盘路径的上传文件）
 int conn_c::upload(char const* appid,char const* userid,char const* fileid,char const* filepath){
     // |包体长度|命令|状态|应用ID|用户ID|文件ID|文件大小|文件内容|
-    // |   8   | 1 | 1 |  16  | 256 | 128 |   8   |文件大小|
+    // |   8   | 1  | 1  |  16  | 256 | 128  |   8   |文件大小|
     // 构造请求
     long long bodylen=APPID_SIZE+USERID_SIZE+FILEID_SIZE+BODYLEN_SIZE;
     long long requlen=HEADLEN+bodylen;
     char requ[requlen]={};
     if(makerequ(CMD_STORAGE_UPLOAD,appid,userid,fileid,requ)!=OK) return ERROR;
-    acl::ifstream ifs;
-    if(!ifs.open_read(filepath)){
+    acl::ifstream ifs;  // 文件流
+    if(!ifs.open_read(filepath)){   // 打开并读取文件
         logger_error("open file fail, filepath: %s.",filepath);
         return ERROR;
     }
@@ -128,6 +130,7 @@ int conn_c::upload(char const* appid,char const* userid,char const* fileid,char 
         logger_error("write fail: %s, requlen: %lld, to: %s.",acl::last_serror(),requlen,m_conn->get_peer());
         m_errnumb=-1;
         m_errdesc.format("write fail: %s, requlen: %lld, to: %s.",acl::last_serror(),requlen,m_conn->get_peer());
+        close();
         return SOCKET_ERROR;
     }
     // 发送数据，未发送字节数
@@ -168,7 +171,7 @@ int conn_c::upload(char const* appid,char const* userid,char const* fileid,char 
     }
     return result;
 }
-// 向存储服务器上传文件
+// 向存储服务器上传文件（面向内存的上传文件）
 int conn_c::upload(char const* appid,char const* userid,char const* fileid,char const* filedata,long long filesize){
     // |包体长度|命令|状态|应用ID|用户ID|文件ID|文件大小|文件内容|
     // |   8   | 1 | 1 |  16  | 256 | 128 |   8   |文件大小|
@@ -187,13 +190,15 @@ int conn_c::upload(char const* appid,char const* userid,char const* fileid,char 
         logger_error("write fail: %s, requlen: %lld, to: %s.",acl::last_serror(),requlen,m_conn->get_peer());
         m_errnumb=-1;
         m_errdesc.format("write fail: %s, requlen: %lld, to: %s.",acl::last_serror(),requlen,m_conn->get_peer());
+        close();
         return SOCKET_ERROR;
     }
-    // 发送数据，未发送字节数
+    // 发送数据(文件内容)
     if(m_conn->write(filedata,filesize)<0){
         logger_error("write fail: %s, requlen: %lld, to: %s.",acl::last_serror(),requlen,m_conn->get_peer());
         m_errnumb=-1;
         m_errdesc.format("write fail: %s, requlen: %lld, to: %s.",acl::last_serror(),requlen,m_conn->get_peer());
+        close();
         return SOCKET_ERROR;
     }
     // 包体指针
@@ -203,7 +208,7 @@ int conn_c::upload(char const* appid,char const* userid,char const* fileid,char 
     // 解析包体
     if(result==STATUS_ERROR){
         // |包体长度|命令|状态|错误号|存储服务器地址列表|
-        // |   8   | 1 | 1 |  2  |    <=1024     |
+        // |   8   | 1  | 1  |  2  |     <=1024     |
         m_errnumb=ntos(body);
         m_errdesc=bodylen>ERROR_NUMB_SIZE?body+ERROR_NUMB_SIZE:"";
     }
@@ -217,7 +222,7 @@ int conn_c::upload(char const* appid,char const* userid,char const* fileid,char 
 // 向存储服务器询问文件大小
 int conn_c::filesize(char const* appid,char const* userid,char const* fileid,long long* filesize){
     // |包体长度|命令|状态|应用ID|用户ID|文件ID|
-    // |   8   | 1 | 1 |  16  | 256 | 128 |
+    // |   8   |  1 | 1 |  16  | 256  | 128 |
     // 构造请求
     long long bodylen=APPID_SIZE+USERID_SIZE+FILEID_SIZE;
     long long requlen=HEADLEN+bodylen;
@@ -230,6 +235,7 @@ int conn_c::filesize(char const* appid,char const* userid,char const* fileid,lon
         logger_error("write fail: %s, requlen: %lld, to: %s.",acl::last_serror(),requlen,m_conn->get_peer());
         m_errnumb=-1;
         m_errdesc.format("write fail: %s, requlen: %lld, to: %s.",acl::last_serror(),requlen,m_conn->get_peer());
+        close();
         return SOCKET_ERROR;
     }
     // 包体指针
@@ -239,11 +245,11 @@ int conn_c::filesize(char const* appid,char const* userid,char const* fileid,lon
     // 解析包体
     if(result==OK)
         // |包体长度|命令|状态|文件大小|
-        // |   8   | 1 | 1 |   8   |
+        // |   8   | 1  |  1 |   8   |
         *filesize=ntoll(body);
     else if(result==STATUS_ERROR){
         // |包体长度|命令|状态|错误号|存储服务器地址列表|
-        // |   8   | 1 | 1 |  2  |    <=1024     |
+        // |   8   | 1  | 1  |  2  |     <=1024     |
         m_errnumb=ntos(body);
         m_errdesc=bodylen>ERROR_NUMB_SIZE?body+ERROR_NUMB_SIZE:"";
     }
@@ -257,7 +263,7 @@ int conn_c::filesize(char const* appid,char const* userid,char const* fileid,lon
 // 从存储服务器下载文件
 int conn_c::download(char const* appid,char const* userid,char const* fileid,long long offset,long long size,char ** filedata,long long* filesize){
     // |包体长度|命令|状态|应用ID|用户ID|文件ID|偏移|大小|
-    // |   8   | 1 | 1 |  16  | 256 | 128 |  8 | * |
+    // |   8   | 1  | 1  |  16  | 256 | 128  |  8 | * |
     // 构造请求
     long long bodylen=APPID_SIZE+USERID_SIZE+FILEID_SIZE+BODYLEN_SIZE+BODYLEN_SIZE;
     long long requlen=HEADLEN+bodylen;
@@ -272,6 +278,7 @@ int conn_c::download(char const* appid,char const* userid,char const* fileid,lon
         logger_error("write fail: %s, requlen: %lld, to: %s.",acl::last_serror(),requlen,m_conn->get_peer());
         m_errnumb=-1;
         m_errdesc.format("write fail: %s, requlen: %lld, to: %s.",acl::last_serror(),requlen,m_conn->get_peer());
+        close();
         return SOCKET_ERROR;
     }
     // 包体指针
@@ -281,7 +288,7 @@ int conn_c::download(char const* appid,char const* userid,char const* fileid,lon
     // 解析包体
     if(result==OK){
         // |包体长度|命令|状态|文件内容|
-        // |   8   | 1 | 1 |内容大小|
+        // |   8   |  1 |  1 |内容大小|
         *filedata=body;
         *filesize=bodylen;
         return result;
@@ -315,6 +322,7 @@ int conn_c::del(char const* appid,char const* userid,char const* fileid){
         logger_error("write fail: %s, requlen: %lld, to: %s.",acl::last_serror(),requlen,m_conn->get_peer());
         m_errnumb=-1;
         m_errdesc.format("write fail: %s, requlen: %lld, to: %s.",acl::last_serror(),requlen,m_conn->get_peer());
+        close();
         return SOCKET_ERROR;
     }
     // 包体指针
@@ -353,6 +361,7 @@ bool conn_c::open(void){
     if(!m_conn->open(m_destaddr,m_ctimeout,m_rtimeout)){
         logger_error("open %s fail: %s.",m_destaddr,acl_last_serror());
         delete m_conn;
+        m_conn=nullptr;
         m_errnumb=-1;
         m_errdesc.format("open %s fail: %s.",m_destaddr,acl_last_serror());
         return false;
@@ -370,14 +379,14 @@ void conn_c::close(void){
 // 构造请求(报文中的公共部分)
 int conn_c::makerequ(char command,char const* appid,char const* userid,char const* fileid,char* requ){
     // |包体长度|命令|状态|应用ID|用户ID|文件ID|
-    // |   8   | 1 | 1 |  16  | 256 | 128 |
+    // |   8   | 1  | 1 |  16  |  256 | 128 |
     // 命令
     requ[BODYLEN_SIZE]=command;
     // 状态
     requ[BODYLEN_SIZE+COMMAND_SIZE]=0;
     // 应用ID
     if(strlen(appid)>=APPID_SIZE){
-        logger_error("appid too big, %lu >= %d",strlen(appid),APPID_SIZE);
+        logger_error("appid too big, %lu >= %d.",strlen(appid),APPID_SIZE);
         m_errnumb=-1;
         m_errdesc.format("appid too big, %lu >= %d",strlen(appid),APPID_SIZE);
         return ERROR;
@@ -393,7 +402,7 @@ int conn_c::makerequ(char command,char const* appid,char const* userid,char cons
     strcpy(requ+HEADLEN+APPID_SIZE,userid);
     // 文件ID
     if(strlen(fileid)>=FILEID_SIZE){
-        logger_error("fileid too big, %lu >= %d",strlen(fileid),FILEID_SIZE);
+        logger_error("fileid too big, %lu >= %d.",strlen(fileid),FILEID_SIZE);
         m_errnumb=-1;
         m_errdesc.format("fileid too big, %lu >= %d",strlen(fileid),FILEID_SIZE);
         return ERROR;
@@ -418,7 +427,7 @@ int conn_c::recvbody(char** body,long long* bodylen){
         if(m_conn->read(*body,*bodylen)<0){
             logger_error("read fail: %s, from: %s.",acl::last_serror(),m_conn->get_peer());
             m_errnumb=-1;
-            m_errdesc.format("read fail: %s, from: %s.",acl::last_serror(),m_conn->get_peer());
+            m_errdesc.format("read fail: %s, from: %s",acl::last_serror(),m_conn->get_peer());
             free(*body);
             *body=nullptr;
             close();
@@ -434,18 +443,18 @@ int conn_c::recvhead(long long* bodylen){
     char head[HEADLEN];
     // 接收包头
     if(m_conn->read(head,HEADLEN)<0){
-        logger_error("read fail: %s, from: %s",acl::last_serror(),m_conn->get_peer());
+        logger_error("read fail: %s, from: %s.",acl::last_serror(),m_conn->get_peer());
         m_errnumb=-1;
         m_errdesc.format("read fail: %s ,from: %s",acl::last_serror(),m_conn->get_peer());
         close();
         return SOCKET_ERROR;
     }
     // |包体长度|命令|状态|
-    // |   8   | 1 | 1 |
+    // |   8   |  1 | 1 |
     // 解析包头
     // 包体长度
     if((*bodylen=ntoll(head))<0){
-        logger_error("invalid body length: %lld < 0, from: %s",*bodylen,m_conn->get_peer());
+        logger_error("invalid body length: %lld < 0, from: %s.",*bodylen,m_conn->get_peer());
         m_errnumb=-1;
         m_errdesc.format("invalid body length: %lld < 0, from: %s",*bodylen,m_conn->get_peer());
         return ERROR;
@@ -455,11 +464,9 @@ int conn_c::recvhead(long long* bodylen){
     // 状态
     int status=head[BODYLEN_SIZE+COMMAND_SIZE];
     if(status){
-        logger_error("response status %d !=0, from: %s",status,m_conn->get_peer());
+        logger_error("response status %d !=0, from: %s.",status,m_conn->get_peer());
         return STATUS_ERROR;
     }
     logger("bodylen: %lld, command: %d, status: %d.",*bodylen,command,status);
     return OK;
 }
-
-

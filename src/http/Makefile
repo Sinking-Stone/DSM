@@ -5,7 +5,8 @@ LINK   = g++
 RM     = rm -rf
 CFLAGS = -c -Wall \
          -I/usr/include/acl-lib/acl_cpp \
-         -I../common -I../client
+         -I../common -I../client \
+		 -g -F dwarf
 LIBS   = -pthread -L../../lib -lclient -lacl_all -lz
 
 all: $(PROJ)
